@@ -57,7 +57,13 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
-
+/**
+ * ProfilesActivity provides the main User Interface for the app
+ * When first started it loads default profiles.
+ * There are options to delete/ edit/add profiles
+ * @author Bobi
+ *
+ */
 public class ProfilesActivity extends LifecycleLoggingActivity {
 
 	protected ListView mProfilesList;
