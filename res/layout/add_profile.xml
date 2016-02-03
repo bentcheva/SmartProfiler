@@ -38,6 +38,7 @@
     
     <ListView 
         android:id="@+id/list2"
+        android:focusableInTouchMode="true"
         android:descendantFocusability="afterDescendants"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"

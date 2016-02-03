@@ -12,7 +12,7 @@ import android.os.Parcelable;
 public class ProfileData implements Parcelable{
 	
 	public ProfileData(String profileName, int status, int wifi, int sound,
-			int mobile_data, int vibration, int start, int stop, String[] days) {
+			int mobile_data, int vibration, long start, long stop, String[] days) {
 		this.profileName = profileName;
 		this.profileStatus = status;
 		this.profileWiFi = wifi;
@@ -104,28 +104,28 @@ public class ProfileData implements Parcelable{
 	 * 
 	 * @return returns the Profile's activation time.
 	 */
-	public int getProfileStartTime() {
+	public long getProfileStartTime() {
 		return profileStartTime;
 	}
 	/**
 	 * 
 	 * @param profileStartTime sets the Profile's activation time.
 	 */
-	public void setProfileStartTime(int profileStartTime) {
+	public void setProfileStartTime(long profileStartTime) {
 		this.profileStartTime = profileStartTime;
 	}
 	/**
 	 * 
 	 * @return the Profile's deactivation time.
 	 */
-	public int getProfileStopTime() {
+	public long getProfileStopTime() {
 		return profileStopTime;
 	}
 	/**
 	 * 
 	 * @param profileStopTime sets the Profile's deactivation time.
 	 */
-	public void setProfileStopTime(int profileStopTime) {
+	public void setProfileStopTime(long profileStopTime) {
 		this.profileStopTime = profileStopTime;
 	}
 	/**
@@ -193,11 +193,11 @@ public class ProfileData implements Parcelable{
 	/**
 	 * Indicates the time when the Profile is automatically activated.
 	 */
-	private int profileStartTime;
+	private long profileStartTime;
 	/**
 	 * Indicates the time when the Profile is automatically disactivated.
 	 */
-	private int profileStopTime;
+	private long profileStopTime;
 	/**
 	 * Array containing days of the week for which the profile is applied.
 	 */
@@ -216,8 +216,8 @@ public class ProfileData implements Parcelable{
 		dest.writeInt(profileSound);
 		dest.writeInt(profileMobileData);
 		dest.writeInt(profileVibration);
-		dest.writeInt(profileStartTime);
-		dest.writeInt(profileStopTime);
+		dest.writeLong(profileStartTime);
+		dest.writeLong(profileStopTime);
 		dest.writeArray(null);
 		
 	}
@@ -229,8 +229,8 @@ public class ProfileData implements Parcelable{
 	        profileSound = in.readInt(); 
 	        profileMobileData = in.readInt(); 
 	        profileVibration = in.readInt(); 
-	        profileStartTime = in.readInt(); 
-	        profileStopTime = in.readInt(); 
+	        profileStartTime = in.readLong(); 
+	        profileStopTime = in.readLong(); 
 	        profileWeekday = null;
 	    } 
 	 
