@@ -23,10 +23,21 @@ import java.util.concurrent.CountDownLatch;
 
 
 
+
+
+
+
+
+
+
+
+
 import com.example.smartprofiler.R;
 
 import smartprofiler.common.GenericActivity;
 import smartprofiler.common.LifecycleLoggingActivity;
+import smartprofiler.model.AlarmReceiver;
+import smartprofiler.model.ProfileAlarmManager;
 import smartprofiler.presenter.AddNewProfile;
 import smartprofiler.presenter.CreateDefaultProfiles;
 import smartprofiler.presenter.DeleteProfileTask;
@@ -36,8 +47,11 @@ import smartprofiler.presenter.ProfilesLoader;
 import smartprofiler.presenter.ProfilesManager;
 import smartprofiler.presenter.ProfilesPreferences;
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -50,9 +64,12 @@ import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Adapter;
+import android.widget.AdapterView;
 import android.widget.AdapterView.AdapterContextMenuInfo;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -68,18 +85,17 @@ public class ProfilesActivity extends LifecycleLoggingActivity {
 
 	protected ListView mProfilesList;
 	protected ProfilesAdapter mMyAdapter;
-	protected ProfilesPreferences mMyPrefs;
-	protected ArrayList<String> mProfiles = new ArrayList<String>();
-	private CountDownLatch mExitBarrier;
 	private ProfilesManager mManager;
 	private String mNewName = null ;
-	private boolean mDialogFinished;
+	private List<ProfileData> mProfiles;
+	private PendingIntent mStartPendingIntent, mStopPendingIntent; 
+	private ProfileAlarmManager mAlarmManager;
+	
 	
 	static final String ACTION_ADD_PROFILE = 
 			"com.example.smartprofiler.action.ACTION_ADD_PROFILE";
 	
 	static final int NEW_PROFILE_RESULT = 1;  // The request code
-
 	
 	
 	/**
@@ -98,22 +114,81 @@ public class ProfilesActivity extends LifecycleLoggingActivity {
 		//setting the Action bar
 	
 		Toolbar myToolbar = (Toolbar) findViewById(R.id.app_bar);
-		mDialogFinished = true;
 	    setSupportActionBar(myToolbar);
 	    //setting the ListView
 		mProfilesList = (ListView) findViewById(R.id.list);
-	
+		setProfiles(new ArrayList<ProfileData>());
 		mMyAdapter = new ProfilesAdapter(this);
 		mProfilesList.setAdapter(mMyAdapter);
 		initDataBase();
 		registerForContextMenu(mProfilesList);
 		
-	
+		//Deactivates the current profile and activates the selected profile 
+		mProfilesList.setOnItemClickListener(new OnItemClickListener( ) {
+
+			@Override
+			public void onItemClick(AdapterView<?> parent, View view,
+					int position, long id) {
+				// TODO Auto-generated method stub
+				Log.d(TAG, mProfiles.get(position).getProfileName() + " profile selected.");
+				Log.d(TAG, mProfiles.get(position).getProfileWiFi() + " WiFi.");
+				Log.d(TAG, mProfiles.get(position).getProfileSound() + " Sound.");
+				Log.d(TAG, mProfiles.get(position).getProfileVibration() + " Vibration.");
+				if(mAlarmManager != null){
+					//stop the Alarms
+					mAlarmManager.deactivateAlarm();
+					// freeing the old Alarm for  GC 
+					mAlarmManager = null;
+				}
+				if(mProfiles.get(position).getProfileStartTime() == CreateDefaultProfiles.DEFAULT_START 
+						|| mProfiles.get(position).getProfileStopTime() == CreateDefaultProfiles.DEFAULT_STOP){
+					// the profile is not time window dependant
+					Log.d(TAG, "setting Resources");
+					Utils.Utils.setResources(mProfiles.get(position), ProfilesActivity.this);
+					// TODO to deactivate any active alarms
+				}
+				else{
+					mAlarmManager = new ProfileAlarmManager(getActivityContext(), makeIntent(mProfiles.get(position), 
+																								getActivityContext(), AlarmReceiver.BUNDLE_CODE));
+					mAlarmManager.activateAlarm();
+					
+				}
+			}
+		});
 	}
 	
+	/**
+	 * Factory method returning Intent
+	 * @param profile ProfileData object bundled as Extras in the Intent
+	 * @param context Activity's context
+	 * @return Intent object or null
+	 */
+	private Intent makeIntent(ProfileData profile, Context context, String bundleCode){
+		
+		if(profile != null){
+			Intent intent = new Intent(context, AlarmReceiver.class);
+			Bundle mBundle = new Bundle(); 
+			mBundle.putParcelable(ProfileAlarmManager.ALARM_DATA, profile); 
+			return intent.putExtra(bundleCode, mBundle);
+			
+		}else
+			return null;
+	}
+
+	
+	
+
+	@Override
+	protected void onResume() {
+		// TODO Auto-generated method stub
+		super.onResume();
+		Log.d(TAG, "Profiles size " + String.valueOf(mProfiles.size()));
+	}
+
+
 
 	// if the db table doesn't exists, which is equivalent to first time running the app 
-	//the method creates new table and load 3 default profiles
+	//the method creates new table and loads 3 default profiles
 	//if the table exists uses the records of the table to display the profiles in the ListView
 	private void initDataBase()
 	{
@@ -132,6 +207,8 @@ public class ProfilesActivity extends LifecycleLoggingActivity {
 		new ProfilesLoader(mManager, this).execute();  
 		
 	}
+	
+	
 	
 	//called from a background thread
 	@SuppressWarnings("unchecked")
@@ -221,12 +298,7 @@ public class ProfilesActivity extends LifecycleLoggingActivity {
 		if (id == R.id.action_add) {
 			Intent intent = new Intent(this, AddProfileActivity.class);
 			intent.setAction(Intent.ACTION_SEND);
-		//	startActivity(intent);
 			showDialogue();
-			if(mNewName == null)
-				Log.d(TAG, "Name is null");
-			else
-				Log.d(TAG, mNewName);
 			
 			return true;
 		}
@@ -289,19 +361,38 @@ public class ProfilesActivity extends LifecycleLoggingActivity {
 	        // Make sure the request was successful
 	        if (resultCode == RESULT_OK) {
 	        	
-	            ProfileData newProfile = data.getParcelableExtra(AddProfileActivity.PARCABLE_CODE);
+	         /*   ProfileData newProfile = data.getParcelableExtra(AddProfileActivity.PARCABLE_CODE);
 	            if(newProfile == null)
 	            	Log.d(TAG, "intent data extracted are null");
 	            else
-	            	Log.d(TAG, newProfile.getProfileName());
+	            	Log.d(TAG, newProfile.getProfileName()); */
+	        	
 	            
-	            new AddNewProfile(mManager, newProfile, this).execute();
+	            new AddNewProfile(mManager, Utils.Utils.getIntentData(data, AddProfileActivity.PARCABLE_CODE), this).execute();
 	            
 	           
 	        }
 	    }
 
 	}
+
+	/**
+	 * Getter method returns List with ProfileData objects
+	 * @return List<ProfileData>
+	 */
+	public  List<ProfileData> getProfiles() {
+		return this.mProfiles;
+	}
+
+	/**
+	 * Setter method. Sets the member variable mProfiles.
+	 * @param profiles List<ProfileData>
+	 */
+	public void setProfiles(List<ProfileData> profiles) {
+		this.mProfiles = profiles;
+	}
+
+
 	}
 
 

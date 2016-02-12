@@ -1,83 +1,97 @@
 package smartprofiler.model;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-
+import smartprofiler.presenter.ProfileData;
+import smartprofiler.views.AddProfileActivity;
 import Utils.Utils;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.net.wifi.WifiManager;
+import android.os.Bundle;
 import android.util.Log;
 
 
 public class AlarmReceiver extends BroadcastReceiver{
 	
 	
-	//TAG for debuging
-		 private final static String TAG = 
+	protected final static int STATUS_OFF = 0;
+	protected final static int STATUS_ON = 1;
+	protected final static int STATUS_NO_CHANGE = 2;
+	public static final String BUNDLE_CODE = "receiver bundle";
+	
+	 /**
+     * Used for Android debugging.
+     */
+	protected final static String TAG = 
 			        AlarmReceiver.class.getName();
-
+	
+		 //Callback method called upon firing of the Alarm
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		// TODO Auto-generated method stub
+		  Log.d(TAG, "onReceive()");	
+		  if(intent != null){
+			  Log.d(TAG, "intent != null");
+			  ProfileData alarmProfile = Utils.getBundledData(intent, BUNDLE_CODE, ProfileAlarmManager.ALARM_DATA);
+			  Log.d(TAG, alarmProfile.getProfileName());
+			  int mode = intent.getIntExtra(ProfileAlarmManager.ALARM_STATUS, 0);
+			  Log.d(TAG, String.valueOf(mode));
+					  
+		switch(mode){
+		case ProfileAlarmManager.START_ALARM: Log.d(TAG, "StartAlarm");
 		
-		int mode = intent.getExtras().getInt("value");
-		boolean wifiOff = intent.getExtras().getBoolean("wifi");
-		switch(mode)
-		{
-		case 1:
-			Utils.showToast(context, "Sleep alarm went off");
-			Log.d(TAG, "sleepAlarm fired at: " + String.valueOf(System.currentTimeMillis()));
-			SimpleDateFormat sdf= new SimpleDateFormat("dd/MM/yyyy hh:mm:ss a");
-			String str=sdf.format(System.currentTimeMillis());
-			Log.d(TAG, "sleepAlarm fired at: " + str);
-			toggleWiFi(wifiOff, context);
-			volumeControl(true, context);
+		 if(alarmProfile == null)
+	          	Log.d(TAG, "intent data extracted are null");
+	          else{
+	          	Log.d(TAG, alarmProfile.getProfileName());
+	          
+	          	switch(alarmProfile.getProfileWiFi()){
+	          	case 0: Log.d(TAG, "Switch off WiFi");
+	          			Utils.toggleWiFi(STATUS_OFF, context);
+	          		break;
+	          	case 1: Log.d(TAG,"Switch off WiFi");
+	          	        Utils.toggleWiFi(STATUS_ON, context);
+	          		break;
+	          	case 2: Log.d(TAG," No change WiFi");
+	          		break;
+	          		default: Log.d(TAG," Wrong data for WiFi");
+	          	}
+	          	
+	          	switch(alarmProfile.getProfileSound()){
+	          	case 0: Log.d(TAG, "Switch off Sound");
+	          			Utils.volumeControl(STATUS_OFF, context);
+	          		break;
+	          	case 1: Log.d(TAG,"Switch off Sound");
+	          			Utils.volumeControl(STATUS_ON, context);
+	          		break;
+	          	case 2: Log.d(TAG," No change Sound");
+	          		break;
+	          		default: Log.d(TAG," Wrong data for Sound");
+	          	}
+	          	
+	          	switch(alarmProfile.getProfileVibration()){
+	          	case 0: Log.d(TAG, "Switch off Vibration");
+	          			Utils.toggleVibration(STATUS_OFF, context);
+	          		break;
+	          	case 1: Log.d(TAG,"Switch off Vibration");
+	          			Utils.toggleVibration(STATUS_ON, context);
+	          		break;
+	          	case 2: Log.d(TAG," No change Vibration");
+	          		break;
+	          		default: Log.d(TAG," Wrong data for Vibration");
+	          	}
+	         
+	          }
 			break;
-		case 2:	
-			Utils.showToast(null, "Wake alarm went off");
-			Log.d(TAG, "wakeAlarm firred at: " + String.valueOf(System.currentTimeMillis()));
-			SimpleDateFormat sdfw= new SimpleDateFormat("dd/MM/yyyy hh:mm:ss a");
-			String strw=sdfw.format(System.currentTimeMillis());
-			Log.d(TAG, "wakeAlarm fired at: " + strw);
-			volumeControl(false, context);
+		case ProfileAlarmManager.STOP_ALARM: Log.d(TAG, "StopAlarm");
 			break;
-		}
-		
-	}
-	
-	// turns off/on the volume
-	
-	public void volumeControl(boolean onOff, Context context){
-		
-		AudioManager audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-		// switches to Silent mode
-		if(onOff == true && (audio.getRingerMode() != AudioManager.RINGER_MODE_SILENT))
-			audio.setRingerMode(AudioManager.RINGER_MODE_SILENT);
-		else
-		{
-			if(onOff == false && (audio.getRingerMode() == AudioManager.RINGER_MODE_SILENT))
-				audio.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
-				
-		}
-				
-	}
-	
-	
-	// turns off the Wifi if selected  when going to sleep 
-	public void toggleWiFi(boolean status, Context context) {
-		
-	WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-	Log.d(TAG, "Wifi status " + String.valueOf(wifiManager.getWifiState()));
-	
-	if(status == true && wifiManager.isWifiEnabled())
-	{
-		wifiManager.setWifiEnabled(false);
-		Log.d(TAG, "WifiOff " + String.valueOf(wifiManager.getWifiState()));
-	}
-		
-	}
+			default: Log.d(TAG, "Wrong mode");
+		} }
+		  else
+			  Log.d(TAG, "intent == null");		
+         
+		 
+	  }
 
 }

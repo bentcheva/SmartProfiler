@@ -1,6 +1,7 @@
 package smartprofiler.common;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -9,8 +10,10 @@ import android.util.Log;
  * This abstract class extends the Activity class and overrides lifecycle
  * callbacks for logging various lifecycle events.
  */
-public abstract class LifecycleLoggingActivity extends AppCompatActivity {
-    /**
+public abstract class LifecycleLoggingActivity extends AppCompatActivity implements ContextView{
+   
+
+	/**
      * Debugging tag used by the Android logger.
      */
     protected final String TAG = 
@@ -135,5 +138,11 @@ public abstract class LifecycleLoggingActivity extends AppCompatActivity {
         super.onDestroy();
         Log.d(TAG, "onDestroy() - the activity is about to be destroyed");
     }
+    
+    @Override
+   	public Context getActivityContext() {
+   		// TODO Auto-generated method stub
+   		return this;
+   	}
 
 }

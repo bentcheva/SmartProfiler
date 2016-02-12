@@ -20,7 +20,8 @@ public class ProfilesLoader extends AsyncTask<Void, Void, List<ProfileData>> {
     private final static String TAG = 
     		ProfilesLoader.class.getName();
 
-	ProfilesManager mProfilesManager;
+	private ProfilesManager mProfilesManager;
+	private List<ProfileData> profilesList;
 	
 	/**
      * Used to enable garbage collection.
@@ -38,7 +39,7 @@ public class ProfilesLoader extends AsyncTask<Void, Void, List<ProfileData>> {
 	protected List<ProfileData> doInBackground(Void... params) {
 		// TODO Auto-generated method stub
 		Log.d(TAG, "doInBackground");
-		List<ProfileData> profilesList = new ArrayList<ProfileData>();
+		profilesList = new ArrayList<ProfileData>();
 		mProfilesManager.open();
 		profilesList = mProfilesManager.getAll();
 		return profilesList = mProfilesManager.getAll();
@@ -49,10 +50,11 @@ public class ProfilesLoader extends AsyncTask<Void, Void, List<ProfileData>> {
 		// TODO Auto-generated method stub
 		super.onPostExecute(result);
 		Log.d(TAG, "onPostExecute");
+		mActivity.get().setProfiles(profilesList);
 		Activity activity = mActivity.get();
 		if (activity != null) {
-		   // do your stuff with activity here
-			//displayProfiles(result);
+		   // displayes the profiles in the UI thread
+			mActivity.get().setProfiles(result);
 			mActivity.get().displayProfiles(result);
 		}
 		Log.d(TAG, "Loader");

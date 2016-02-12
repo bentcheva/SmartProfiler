@@ -112,6 +112,7 @@ public abstract class GenericActivity<RequiredViewOps,
             throws InstantiationException, IllegalAccessException {
         // Create the PresenterType object.
         mPresenterInstance = opsType.newInstance();
+      
 
         // Put the PresenterInstance into the RetainedFragmentManager under
         // the simple name.

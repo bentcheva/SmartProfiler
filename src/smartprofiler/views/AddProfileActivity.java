@@ -11,9 +11,7 @@ import android.app.TimePickerDialog.OnTimeSetListener;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemLongClickListener;
@@ -22,7 +20,7 @@ import android.widget.ListView;
 import android.widget.TimePicker;
 import smartprofiler.common.LifecycleLoggingActivity;
 import smartprofiler.common.PropertyItem;
-import smartprofiler.presenter.AddNewProfile;
+import smartprofiler.presenter.CreateDefaultProfiles;
 import smartprofiler.presenter.ProfileData;
 import smartprofiler.presenter.ProfilesManager;
 
@@ -35,9 +33,11 @@ public class AddProfileActivity extends LifecycleLoggingActivity {
 			"Vibration", "Start time", "Stop time"};
 	private ArrayList<PropertyItem> mPropertyItemList;
 	private ProfilesManager mManager;
-	private long mStartTime = 0;
-	private long mStopTime = 0;
-	private int mSelectedCount;
+	private boolean isStartTimeSet;
+	private boolean isStopTimeSet;
+	private long mStartTime;
+	private long mStopTime;
+	
 	
 	/**
      * Used for Android debugging.
@@ -56,7 +56,7 @@ public class AddProfileActivity extends LifecycleLoggingActivity {
 	protected void onResume() {
 		// TODO Auto-generated method stub
 		super.onResume();
-		mSelectedCount = 0;
+		
 	}
 
 	@Override
@@ -64,7 +64,7 @@ public class AddProfileActivity extends LifecycleLoggingActivity {
 		// TODO Auto-generated method stub
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.add_profile);
-		mSelectedCount = 0;
+		
 		mPropertiesList = (ListView) findViewById(R.id.list2);
 		mPropertyItemList = makePropertyData(mProfileProperties);
 		mNewProfileAdapter = new AddDataAdapter(this,mPropertyItemList);
@@ -95,14 +95,14 @@ public class AddProfileActivity extends LifecycleLoggingActivity {
 					new TimePickerDialog(AddProfileActivity.this, timeStartListener, 
 							mCalendarStartTime.get(Calendar.HOUR_OF_DAY), 
 							mCalendarStartTime.get(Calendar.MINUTE), true).show();
-							mSelectedCount ++;
+							
 					
 					break;
 				case 5: Log.d(TAG, "Stop time picking");
 				new TimePickerDialog(AddProfileActivity.this, timeStopListener, 
 						mCalendarStopTime.get(Calendar.HOUR_OF_DAY), 
 						mCalendarStopTime.get(Calendar.MINUTE), true).show();
-						mSelectedCount ++;
+						
 					break;
 				}
 				
@@ -117,6 +117,7 @@ public class AddProfileActivity extends LifecycleLoggingActivity {
 			// TODO Auto-generated method stub
 			mCalendarStartTime.set(Calendar.HOUR_OF_DAY, hourOfDay);
 			mCalendarStopTime.set(Calendar.MINUTE, minute);
+			isStartTimeSet = true;
 			
 		}
 	};
@@ -128,6 +129,7 @@ public class AddProfileActivity extends LifecycleLoggingActivity {
 			// TODO Auto-generated method stub
 			mCalendarStopTime.set(Calendar.HOUR_OF_DAY, hourOfDay);
 			mCalendarStopTime.set(Calendar.MINUTE, minute);
+			isStopTimeSet = true;
 		}
 	};
 	
@@ -147,7 +149,6 @@ public class AddProfileActivity extends LifecycleLoggingActivity {
 	public void cancelPressed(View view){
 		//preparing the object mProperiesList for GC
 		mPropertiesList = null;
-		mSelectedCount = 0;
 		finish();
 	}
 	/**
@@ -157,7 +158,6 @@ public class AddProfileActivity extends LifecycleLoggingActivity {
 	public void okPressed(View view){
 		
 		ArrayList<PropertyItem> propertyList = new ArrayList<PropertyItem>();
-		long[] millisTimes = new long[2];
 		
 		for(int i =0; i < mPropertiesList.getAdapter().getCount(); i++ ){
 			propertyList.add((PropertyItem) mPropertiesList.getAdapter().getItem(i));
@@ -165,22 +165,25 @@ public class AddProfileActivity extends LifecycleLoggingActivity {
 			Log.d(TAG, String.valueOf(propertyList.get(i).getStatus()));
 		}
 		Log.d(TAG, "name of new profile " +  getIntent().getExtras().getString("name"));
-		if(mSelectedCount == 2)
-		{
-			millisTimes = Utils.Utils.setTimeInMillis(mCalendarStartTime.get(Calendar.HOUR_OF_DAY),
-													  mCalendarStopTime.get(Calendar.HOUR_OF_DAY), 
-													  mCalendarStartTime.get(Calendar.MINUTE), 
-													  mCalendarStopTime.get(Calendar.MINUTE));
-		}
 		ProfileData newProfile = new ProfileData(getIntent().getExtras().getString("name"),
 				0,
 				propertyList.get(0).getStatus(),
 				propertyList.get(1).getStatus(),
 				propertyList.get(2).getStatus(),
 				propertyList.get(3).getStatus(),
-				millisTimes[0],
-				millisTimes[1],
+				CreateDefaultProfiles.DEFAULT_START, 
+				CreateDefaultProfiles.DEFAULT_STOP, null);
+		if(isStartTimeSet && isStopTimeSet)
+			newProfile = new ProfileData(getIntent().getExtras().getString("name"),
+				0,
+				propertyList.get(0).getStatus(),
+				propertyList.get(1).getStatus(),
+				propertyList.get(2).getStatus(),
+				propertyList.get(3).getStatus(),
+				Utils.Utils.timeInMinutes(mCalendarStartTime.get(Calendar.HOUR_OF_DAY), mCalendarStartTime.get(Calendar.MINUTE)),
+				Utils.Utils.timeInMinutes(mCalendarStopTime.get(Calendar.HOUR_OF_DAY), mCalendarStopTime.get(Calendar.MINUTE)),
 				null);
+	
 	
 		Intent resultIntent = new Intent();
 		Bundle mBundle = new Bundle(); 

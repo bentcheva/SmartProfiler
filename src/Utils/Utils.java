@@ -1,20 +1,29 @@
 package Utils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
 import smartprofiler.presenter.ProfileData;
-import smartprofiler.views.AddProfileActivity;
 import android.content.Context;
+import android.content.Intent;
+import android.media.AudioManager;
+import android.net.wifi.WifiManager;
+import android.os.Bundle;
 import android.os.Environment;
+import android.os.Vibrator;
 import android.util.Log;
 import android.widget.Toast;
+
+/**
+ * Class Utils consists of static methods for performing different operations like - 
+ * time conversion in minutes, convertion of time into millis format, switching on/off the Sound, 
+ * WiFi, vibration
+ * 
+ * @author Bobi
+ *
+ */
 
 public class Utils {
 
@@ -29,6 +38,27 @@ public class Utils {
                 Toast.LENGTH_SHORT).show();
 	}
 	
+	/**
+	 * This method transforms the time format h:m into minutes
+	 * @param hour Hour in 24 hour format
+	 * @param min Minutes 
+	 * @return the Time in minutes
+	 */
+	public static int timeInMinutes(int hour, int min){
+		return (hour*60 + min);
+	}
+	
+	/**
+	 * This method converts the time in minutes into hours and minutes
+	 * @param min Time in minutes
+	 * @return Array of two elements. the 0 index element represents the Hours and the 1 index element the Minutes
+	 */
+	public static int[] minutesToTime(int min){
+		int[] time = new int[2];
+		time[0] =(int) min/60;
+		time[1] = min - time[0]*60;
+		return time;
+	}
 	public static List<String> namesToString(List<ProfileData> data){
 		List<String> names = new ArrayList<String>();
 		if(data!= null)
@@ -68,7 +98,7 @@ public class Utils {
 	 * @param wakeH Stop time's hour as integer in 24 hour format
 	 * @param sleepM Start time's minutes as integer 
 	 * @param wakeM Stop time's minutes as integer
-	 * @return array of millis, where the element in 0 index is start time and the element in 1st index is the stop time
+	 * @return Array of millis, where the element in 0 index is start time and the element in 1st index is the stop time
 	 */
 	
 public static long[] setTimeInMillis(int sleepH, int wakeH, int sleepM, int wakeM){
@@ -176,4 +206,97 @@ public static long[] setTimeInMillis(int sleepH, int wakeH, int sleepM, int wake
 		return millsDate;
 		
 	}
+
+
+/**
+ * Toggles the Sound depending on the profile's WiFi preference
+ * @param status WiFi preference 
+ * @param context Application context
+ */
+
+public static void volumeControl(int onOff, Context context){
+	
+	AudioManager audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+	// switches to Silent mode
+	if(onOff ==0 && (audio.getRingerMode() != AudioManager.RINGER_MODE_SILENT))
+		audio.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+	else
+	{
+		if(onOff == 0 && (audio.getRingerMode() == AudioManager.RINGER_MODE_SILENT))
+			audio.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+			
+	}
+			
+}
+
+
+/**
+ * Toggles the WiFi depending on the profile's WiFi preference
+ * @param status WiFi preference 
+ * @param context Application context
+ */
+public static void toggleWiFi(int status, Context context) {
+	
+WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+Log.d(TAG, "Wifi status " + String.valueOf(wifiManager.getWifiState()));
+
+if(status == 0 && wifiManager.isWifiEnabled())
+{
+	wifiManager.setWifiEnabled(false);
+	Log.d(TAG, "WifiOff " + String.valueOf(wifiManager.getWifiState()));
+}
+	
+}
+
+/**
+ * Toggles the WiFi depending on the profile's WiFi preference
+ * @param status WiFi preference 
+ * @param context Application context
+ */
+public static void toggleVibration(int status, Context context) {
+	
+AudioManager audio =  (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+Log.d(TAG, "Wifi status " + String.valueOf(audio.getRingerMode()));
+
+if(status == 0 && audio.getRingerMode() == AudioManager.RINGER_MODE_SILENT)
+{
+	audio.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
+	Log.d(TAG, "WifiOff " + String.valueOf(audio.getRingerMode()));
+}
+	
+}
+
+
+/**
+ * This method sets the WiFi, Sound and Vibration according to the selected Profile's preferences
+ * @param profile ProfileData object of the selected profile
+ */
+ public static void setResources(ProfileData profile, Context context){
+	toggleWiFi(profile.getProfileWiFi(), context);
+	volumeControl(profile.getProfileSound(), context);
+	toggleVibration(profile.getProfileVibration(), context);
+}
+ /**
+  *  Extracts the ProfileData object from an intent
+  * @param intent Intent
+  * @param intentCode String assosiated with the object set as extras in the Intent
+  * @return ProfileData extracted from the intent
+  */
+ public static ProfileData getIntentData(Intent intent, String intentCode){
+	 ProfileData newProfile = intent.getParcelableExtra(intentCode);
+     if(newProfile == null)
+     	Log.d(TAG, "intent data extracted are null");
+     else
+     	Log.d(TAG, newProfile.getProfileName());
+     return newProfile;
+}
+ 
+ public static ProfileData getBundledData(Intent intent, String bundleCode, String dataCode){
+	 
+	 if(intent != null){
+		  Bundle bundle = intent.getBundleExtra(bundleCode);
+		  ProfileData alarmData = bundle.getParcelable(dataCode);
+		  return alarmData;
+	 } return null;
+ }
 }
